@@ -12,10 +12,6 @@ import java.util.List;
 public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.ViewHolder> {
 
     private List<LocationEntity> locationList;
-
-    /**
-     * Constructor with null safety
-     */
     public LocationAdapter(List<LocationEntity> locationList) {
         this.locationList = locationList != null ? locationList : new ArrayList<>();
     }

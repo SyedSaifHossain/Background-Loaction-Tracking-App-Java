@@ -47,4 +47,6 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
     // Google Location Services
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    // RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 }

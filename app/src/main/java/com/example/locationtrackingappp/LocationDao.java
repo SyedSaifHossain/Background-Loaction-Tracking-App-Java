@@ -11,6 +11,9 @@ public interface LocationDao {
     @Insert
     void insert(LocationEntity location);
 
-    @Query("SELECT * FROM location_table ORDER BY id DESC")
+    @Query("SELECT * FROM locations ORDER BY timestamp DESC")
     List<LocationEntity> getAllLocations();
+
+    @Query("DELETE FROM locations")
+    void deleteAll();
 }

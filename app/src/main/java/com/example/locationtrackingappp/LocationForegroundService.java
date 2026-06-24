@@ -1,157 +1,135 @@
 package com.example.locationtrackingappp;
 
-import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.Toast;
-import androidx.annotation.Nullable;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
-import com.google.android.gms.location.*;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import com.example.locationtrackingappp.AppDatabase;
+import com.example.locationtrackingappp.LocationDao;
+import com.example.locationtrackingappp.LocationEntity;
+import com.example.locationtrackingappp.MainActivity;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+
+import java.util.concurrent.TimeUnit;
 
 public class LocationForegroundService extends Service {
 
+    private static final String TAG = "LocationService";
     private static final String CHANNEL_ID = "location_channel";
-    private static final int NOTIFICATION_ID = 1;
-
     private FusedLocationProviderClient fusedLocationClient;
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private Handler handler;
     private Runnable locationRunnable;
-    private int intervalMinutes = 5; // default
+    private AppDatabase db;
+
+    private LocationDao locationDao;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        db = AppDatabase.getDatabase(this);
+        locationDao = db.locationDao();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         createNotificationChannel();
+        startForeground(1, getNotification());
+        handler = new Handler(Looper.getMainLooper());
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && intent.hasExtra("interval")) {
-            intervalMinutes = intent.getIntExtra("interval", 5);
-        }
-
-        startForegroundService();
         startLocationUpdates();
         return START_STICKY;
     }
 
-    private void startForegroundService() {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Location Tracker Running")
-                .setContentText("Tracking location in background...")
-                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-                .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setOngoing(true)
-                .build();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
-        } else {
-            startForeground(NOTIFICATION_ID, notification);
-        }
-    }
-
     private void startLocationUpdates() {
-        // Remove any existing callbacks first
-        if (locationRunnable != null) {
-            handler.removeCallbacks(locationRunnable);
-        }
+        int intervalMinutes = getIntervalMinutes();
+        long intervalMs = TimeUnit.MINUTES.toMillis(intervalMinutes);
 
-        locationRunnable = new Runnable() {
-            @Override
-            public void run() {
-                getCurrentLocation();
-                handler.postDelayed(this, intervalMinutes * 60 * 1000L); // interval in milliseconds
-            }
+        locationRunnable = () -> {
+            getCurrentLocation();
+            handler.postDelayed(locationRunnable, intervalMs);
         };
-        handler.post(locationRunnable); // Start immediately
+        handler.post(locationRunnable);
     }
 
     private void getCurrentLocation() {
-        // Check permission before requesting location
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
-        // Updated way to create LocationRequest (not deprecated)
-        LocationRequest locationRequest = new LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY, 10000)
-                .build();
-
-        fusedLocationClient.getCurrentLocation(locationRequest.getPriority(), null)
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                 .addOnSuccessListener(location -> {
                     if (location != null) {
-                        String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                                .format(new Date());
-
-                        String message = "Location: " + location.getLatitude() + ", " + location.getLongitude();
-
-                        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-
-                        // Save to Room Database
-                        LocationEntity entity = new LocationEntity(
-                                location.getLatitude(),
-                                location.getLongitude(),
-                                time);
-
-                        new Thread(() -> {
-                            AppDatabase.getInstance(getApplicationContext())
-                                    .locationDao()
-                                    .insert(entity);
-                        }).start();
+                        saveLocation(location.getLatitude(), location.getLongitude());
+                        Toast.makeText(getApplicationContext(),
+                                "Location: " + location.getLatitude() + ", " + location.getLongitude(),
+                                Toast.LENGTH_SHORT).show();
                     }
-                })
-                .addOnFailureListener(e -> {
-                    // Optional: Log error
                 });
+    }
+
+    private void saveLocation(double lat, double lng) {
+        LocationEntity entity = new LocationEntity();
+        entity.latitude = lat;
+        entity.longitude = lng;
+        entity.timestamp = System.currentTimeMillis();
+        new Thread(() -> locationDao.insert(entity)).start();
+    }
+
+    private int getIntervalMinutes() {
+        SharedPreferences prefs = getSharedPreferences("LocationPrefs", MODE_PRIVATE);
+        return prefs.getInt("interval_minutes", 5);
+    }
+
+    private Notification getNotification() {
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Location Tracking Active")
+                .setContentText("Running in background")
+                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build();
     }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Location Tracking Service",
-                    NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("Used for background location tracking");
-
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+                    "Location Service Channel", NotificationManager.IMPORTANCE_LOW);
             NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
+            if (manager != null) manager.createNotificationChannel(channel);
         }
-    }
-
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
     }
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         if (handler != null && locationRunnable != null) {
             handler.removeCallbacks(locationRunnable);
         }
+        super.onDestroy();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }

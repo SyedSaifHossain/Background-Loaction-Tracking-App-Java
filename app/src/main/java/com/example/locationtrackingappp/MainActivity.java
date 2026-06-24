@@ -3,111 +3,95 @@ package com.example.locationtrackingappp;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Toast;
-import androidx.activity.EdgeToEdge;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import java.util.List;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
-    private EditText etInterval;
-    private RecyclerView recyclerView;
-    private LocationAdapter adapter;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private Button startButton, stopButton, settingsButton, viewDataButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        // Initialize UI components
-        etInterval = findViewById(R.id.etInterval);
-        Button btnStart = findViewById(R.id.btnStart);
-        Button btnStop = findViewById(R.id.btnStop);
-        Button btnRefresh = findViewById(R.id.btnRefresh);
+        startButton = findViewById(R.id.startButton);
+        stopButton = findViewById(R.id.stopButton);
+        settingsButton = findViewById(R.id.settingsButton);
+        viewDataButton = findViewById(R.id.viewDataButton);
 
-        // Setup RecyclerView
-        recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new LocationAdapter(null);
-        recyclerView.setAdapter(adapter);
-
-        checkPermissions();
-
-        // Start background location tracking
-        btnStart.setOnClickListener(v -> {
-            int interval = 5; // default 5 minutes
-            try {
-                interval = Integer.parseInt(etInterval.getText().toString().trim());
-            } catch (Exception e) {
-                // Keep default value if input is invalid
-            }
-
-            Intent serviceIntent = new Intent(this, LocationForegroundService.class);
-            serviceIntent.putExtra("interval", interval);
-            startService(serviceIntent);
-            Toast.makeText(this, "Background Tracking Started", Toast.LENGTH_SHORT).show();
-        });
-
-        // Stop background location tracking
-        btnStop.setOnClickListener(v -> {
-            stopService(new Intent(this, LocationForegroundService.class));
-            Toast.makeText(this, "Tracking Stopped", Toast.LENGTH_SHORT).show();
-        });
-
-        // Load saved locations from database
-        btnRefresh.setOnClickListener(v -> loadLocationsFromDatabase());
-    }
-
-    /**
-     * Loads all saved locations from Room Database and updates RecyclerView
-     */
-    private void loadLocationsFromDatabase() {
-        new Thread(() -> {
-            List<LocationEntity> list = AppDatabase.getInstance(this)
-                    .locationDao().getAllLocations();
-
-            runOnUiThread(() -> {
-                if (adapter != null) {
-                    adapter.updateList(list);
-                }
-
-                if (list.isEmpty()) {
-                    Toast.makeText(this, "No locations saved yet", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, list.size() + " locations loaded from database", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }).start();
-    }
-
-    private void checkPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.POST_NOTIFICATIONS
-                    }, 100);
-        }
-    }
-
-    // Handle permission result
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 100) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Permission granted. You can start tracking.", Toast.LENGTH_SHORT).show();
+        startButton.setOnClickListener(v -> {
+            if (checkPermissions()) {
+                startLocationService();
             } else {
-                Toast.makeText(this, "Location permission is required for tracking", Toast.LENGTH_LONG).show();
+                requestPermissions();
             }
+        });
+
+        stopButton.setOnClickListener(v -> stopLocationService());
+        settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        viewDataButton.setOnClickListener(v -> viewStoredData());
+    }
+
+    private boolean checkPermissions() {
+        boolean fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean background = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED;
+        return fine && background;
+    }
+
+    private void requestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startLocationService();
+        } else {
+            Toast.makeText(this, "Location permission required", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void startLocationService() {
+
+        Intent serviceIntent = new Intent(this, LocationForegroundService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
+        Toast.makeText(this, "Tracking Started", Toast.LENGTH_SHORT).show();
+    }
+
+    private void stopLocationService() {
+        stopService(new Intent(this, LocationForegroundService.class));
+        Toast.makeText(this, "Tracking Stopped", Toast.LENGTH_SHORT).show();
+    }
+
+    private void viewStoredData() {
+        startActivity(new Intent(this, StoredDataActivity.class));
     }
 }
