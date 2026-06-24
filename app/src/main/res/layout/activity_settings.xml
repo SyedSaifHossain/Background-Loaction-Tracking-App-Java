@@ -3,23 +3,99 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#F5F5F5">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Location Fetch Interval (minutes):" />
-
-    <EditText
-        android:id="@+id/intervalEditText"
+    <!-- Header with Title and Back Button -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="number" />
+        android:background="#2196F3"
+        android:padding="12dp">
 
-    <Button
-        android:id="@+id/saveButton"
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:paddingStart="50dp"
+            android:paddingEnd="50dp" />
+
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Back"
+            android:scaleType="centerInside"
+            android:background="?attr/selectableItemBackground"
+            android:layout_gravity="start|center_vertical" />
+
+    </FrameLayout>
+
+    <!-- Content -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save Interval" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:elevation="4dp"
+                android:layout_marginBottom="16dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                app:cardCornerRadius="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="#FFFFFF">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Location Fetch Interval (minutes):"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"
+                        android:textColor="#333333" />
+
+                    <EditText
+                        android:id="@+id/intervalEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:inputType="number"
+                        android:padding="12dp"
+                        android:background="#F0F0F0"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <Button
+                android:id="@+id/saveButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Save Interval"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2196F3"
+                android:layout_marginTop="16dp" />
+
+        </LinearLayout>
+
+    </ScrollView>
 
 </LinearLayout>

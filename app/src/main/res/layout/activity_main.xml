@@ -3,34 +3,82 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#F5F5F5">
 
-    <TextView
-        android:id="@+id/appTitle"
+    <!-- Header with Title -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:height="50dp"
-        android:text="Background Location Tracker"
-        android:textSize="18sp"/>
+        android:orientation="horizontal"
+        android:background="#2196F3"
+        android:padding="12dp"
+        android:gravity="center_vertical">
 
-    <Button android:id="@+id/startButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Start Tracking" />
+        <TextView
+            android:id="@+id/appTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Location Tracker"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:gravity="center" />
 
-    <Button android:id="@+id/stopButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Stop Tracking" />
+    </LinearLayout>
 
-    <Button android:id="@+id/settingsButton"
+    <!-- Content -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Settings" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <Button android:id="@+id/viewDataButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="View Stored Data" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <Button
+                android:id="@+id/startButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:text="Start Tracking"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#4CAF50"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/stopButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:text="Stop Tracking"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#F44336"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/viewDataButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:text="View Stored Data"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2196F3"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/settingsButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:text="Settings"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#FF9800" />
+
+        </LinearLayout>
+
+    </ScrollView>
 
 </LinearLayout>

@@ -2,6 +2,7 @@ package com.example.locationtrackingappp;
 
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +16,8 @@ public class StoredDataActivity extends AppCompatActivity {
 
     private RecyclerView locationsRecyclerView;
     private Button deleteAllButton;
+    private Button refreshButton;
+    private ImageButton backButton;
     private LocationAdapter adapter;
 
     @Override
@@ -24,11 +27,17 @@ public class StoredDataActivity extends AppCompatActivity {
 
         locationsRecyclerView = findViewById(R.id.locationsRecyclerView);
         deleteAllButton = findViewById(R.id.deleteAllButton);
+        refreshButton = findViewById(R.id.refreshButton);
+        backButton = findViewById(R.id.backButton);
+
+        // Back button functionality
+        backButton.setOnClickListener(v -> finish());
 
         adapter = new LocationAdapter(new ArrayList<>());
         locationsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         locationsRecyclerView.setAdapter(adapter);
 
+        refreshButton.setOnClickListener(v -> loadLocationData());
         deleteAllButton.setOnClickListener(v -> deleteAllData());
 
         loadLocationData();
